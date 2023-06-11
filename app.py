@@ -18,6 +18,20 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
+class DataService(BaseModel):
+    id: str
+    endpoint_description: str = ""
+    endpointURL: str = ""
+    keywords: List[str] = []
+    landing_page: str = ""
+    title: str = ""
+    description: str = ""
+    issued: datetime = datetime.utcnow()
+    modified: datetime = datetime.utcnow()
+    language: str = ""
+    license: str = ""
+
+
 class Distribution(BaseModel):
     id: str
     title: str = ""
@@ -181,7 +195,7 @@ async def get_distribution(
     distributions = []
     for distribution in conn.getVertices(vertexType="Distribution"):
         attrs = distribution["attributes"]
-        distribution = Distribution(
+        distribution1 = Distribution(
             id=distribution["v_id"],
             title=attrs.get("title", ""),
             description=attrs.get("description", ""),
@@ -189,5 +203,43 @@ async def get_distribution(
             downloadURL=attrs.get("downloadURL", ""),
             format=attrs.get("format", ""),
         )
-        distributions.append(distribution)
+        distributions.append(distribution1)
     return distributions
+
+
+@app.post("/service")
+async def post_service(
+    conn: Annotated[object, Depends(get_connection)], service: DataService
+):
+    attrs = to_attrs(service.dict())
+    return conn.upsertVertex(
+        vertexType="Service", vertexId=service.id, attributes=attrs
+    )
+
+
+@app.get("/service")
+async def get_service(
+    conn: Annotated[object, Depends(get_connection)]
+) -> List[DataService]:
+    services = []
+    for service in conn.getVertices(vertexType="Service"):
+        attrs = service["attributes"]
+        service1 = DataService(
+            id=service["v_id"],
+            endpoint_description=attrs.get("endpoint_description", ""),
+            endpointURL=attrs.get("endpointURL", ""),
+            keywords=attrs.get("keywords", []),
+            landing_page=attrs.get("landing_page", ""),
+            title=attrs.get("title", ""),
+            description=attrs.get("description", ""),
+            issued=datetime.strptime(
+                attrs.get("issued", "1970-01-01 00:00:00"), "%Y-%m-%d %H:%M:%S"
+            ),
+            modified=datetime.strptime(
+                attrs.get("modified", "1970-01-01 00:00:00"), "%Y-%m-%d %H:%M:%S"
+            ),
+            language=attrs.get("language", ""),
+            license=attrs.get("license", ""),
+        )
+        services.append(service1)
+    return services
