@@ -86,15 +86,21 @@ async def favicon():
     )
 
 
+def to_attrs(d: dict) -> dict:
+    if "id" in d:
+        del d["id"]
+    d1 = {}
+    for k, v in d.items():
+        d1[k] = v.strftime("%Y-%m-%d %H:%M:%S") if isinstance(v, datetime) else v
+    return d1
+
+
 @app.post("/catalog")
 async def post_catalog(
     conn: Annotated[object, Depends(get_connection)], catalog: Catalog
 ):
-    attributes = catalog.dict()
-    if "id" in attributes:
-        del attributes["id"]
     return conn.upsertVertex(
-        vertexType="Catalog", vertexId=catalog.id, attributes=attributes
+        vertexType="Catalog", vertexId=catalog.id, attributes=to_attrs(catalog.dict())
     )
 
 
@@ -107,13 +113,53 @@ async def get_catalog(
         attrs = catalog["attributes"]
         catalog = Catalog(
             id=catalog["v_id"],
-            title=attrs["title"],
-            description=attrs["description"],
-            language=attrs["language"],
-            license=attrs["license"],
-            homepage=attrs["homepage"],
-            issued=datetime.strptime(attrs["issued"], "%Y-%m-%d %H:%M:%S"),
-            modified=datetime.strptime(attrs["modified"], "%Y-%m-%d %H:%M:%S"),
+            title=attrs.get("title", ""),
+            description=attrs.get("description", ""),
+            language=attrs.get("language", ""),
+            license=attrs.get("license", ""),
+            homepage=attrs.get("homepage", ""),
+            issued=datetime.strptime(
+                attrs.get("issued", "1970-01-01 00:00:00"), "%Y-%m-%d %H:%M:%S"
+            ),
+            modified=datetime.strptime(
+                attrs.get("modified", "1970-01-01 00:00:00"), "%Y-%m-%d %H:%M:%S"
+            ),
         )
         catalogs.append(catalog)
     return catalogs
+
+
+@app.post("/dataset")
+async def post_dataset(
+    conn: Annotated[object, Depends(get_connection)], dataset: Dataset
+):
+    attrs = to_attrs(dataset.dict())
+    logging.getLogger(__file__).info("attrs: %s", attrs)
+    return conn.upsertVertex(
+        vertexType="Dataset", vertexId=dataset.id, attributes=attrs
+    )
+
+
+@app.get("/dataset")
+async def get_dataset(
+    conn: Annotated[object, Depends(get_connection)]
+) -> List[Dataset]:
+    datasets = []
+    for dataset in conn.getVertices(vertexType="Dataset"):
+        attrs = dataset["attributes"]
+        dataset = Dataset(
+            id=dataset["v_id"],
+            title=attrs.get("title", ""),
+            description=attrs.get("description", ""),
+            language=attrs.get("language", ""),
+            license=attrs.get("license", ""),
+            keywords=attrs.get("keywords", []),
+            issued=datetime.strptime(
+                attrs.get("issued", "1970-01-01 00:00:00"), "%Y-%m-%d %H:%M:%S"
+            ),
+            modified=datetime.strptime(
+                attrs.get("modified", "1970-01-01 00:00:00"), "%Y-%m-%d %H:%M:%S"
+            ),
+        )
+        datasets.append(dataset)
+    return datasets
