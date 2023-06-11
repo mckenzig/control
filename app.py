@@ -134,7 +134,6 @@ async def post_dataset(
     conn: Annotated[object, Depends(get_connection)], dataset: Dataset
 ):
     attrs = to_attrs(dataset.dict())
-    logging.getLogger(__file__).info("attrs: %s", attrs)
     return conn.upsertVertex(
         vertexType="Dataset", vertexId=dataset.id, attributes=attrs
     )
@@ -163,3 +162,32 @@ async def get_dataset(
         )
         datasets.append(dataset)
     return datasets
+
+
+@app.post("/distribution")
+async def post_distribution(
+    conn: Annotated[object, Depends(get_connection)], distribution: Distribution
+):
+    attrs = to_attrs(distribution.dict())
+    return conn.upsertVertex(
+        vertexType="Distribution", vertexId=distribution.id, attributes=attrs
+    )
+
+
+@app.get("/distribution")
+async def get_distribution(
+    conn: Annotated[object, Depends(get_connection)]
+) -> List[Distribution]:
+    distributions = []
+    for distribution in conn.getVertices(vertexType="Distribution"):
+        attrs = distribution["attributes"]
+        distribution = Distribution(
+            id=distribution["v_id"],
+            title=attrs.get("title", ""),
+            description=attrs.get("description", ""),
+            accessURL=attrs.get("accessURL", ""),
+            downloadURL=attrs.get("downloadURL", ""),
+            format=attrs.get("format", ""),
+        )
+        distributions.append(distribution)
+    return distributions
