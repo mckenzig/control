@@ -1,0 +1,14 @@
+package people
+
+class Person:
+    uid: str [1..1]
+    first_name: str [1..1]
+    last_name: str [1..1]
+    email: str [0..n]    
+    
+
+class Group:
+    uid: str [1..1]
+    name: str [1..1]
+    description: str [1..1]    
+    member: Person [o..n]

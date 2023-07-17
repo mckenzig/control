@@ -1,0 +1,46 @@
+package catalog
+
+import people
+
+class Domain:
+    uid: str [0..1]
+    name: str [0..1]
+    description: str  [0..1]
+    contains: Product [0..n]
+    owner: people.Person [1..n]
+    reader: people.Person [0..n] | people.Group.member [0..n]
+
+    permission: read_data = owner | reader
+    
+
+class Product:
+    uid: str [0..1]
+    name: str [0..1]
+    description: str [0..1]    
+    dustribution: Distribution [0..1]    
+    part_of: Domain [1..1] 
+    reader: people.Person [0..n]
+    owner: people.Person [1..n]
+
+    permission: read_data = owner | reader | part_of -> read_data | part_of -> owner
+
+
+class Distribution:
+    uid: str [0..1]
+    name: str [0..1]
+    description: str [0..1]
+    available_at: Service [1..1] 
+    part_of: Distribution [1..1] 
+    reader: people.Person
+
+    permission: read_data = reader | part_of -> read_data
+    
+
+class Service:
+    uid: str [0..1]
+    name: str [0..1]
+    description: str [0..1]    
+    part_of: Distribution [1..1] 
+    reader: people.Person
+
+    permission: read_data = reader | part_of -> read_data
